@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: billify
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:billify_db}?createDatabaseIfNotExist=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+# Custom JWT Properties
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${accessTokenExpiration}
+  refresh-token-expiration: ${refreshTokenExpiration}
+
+server:
+  port: ${SERVER_PORT:8080}
