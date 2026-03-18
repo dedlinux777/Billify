@@ -10,6 +10,7 @@ import java.util.Date;
 
 @AllArgsConstructor
 @Service
+
 public class JwtService {
     private final JwtConfig jwtConfig;
 

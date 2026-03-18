@@ -21,3 +21,11 @@ jwt:
 
 server:
   port: ${SERVER_PORT}
+
+# Swagger UI / OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
