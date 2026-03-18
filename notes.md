@@ -354,3 +354,408 @@ Why builder?
 Perfect.
 
 ---
+
+
+
+
+# Exception Handling:
+
+## ✅ 1. Why exception handling is needed
+
+Suppose service throws error:
+
+```java
+User user = repo.findById(id)
+    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+```
+
+Without handler → Spring returns ugly error:
+
+```json
+{
+  "timestamp": "...",
+  "status": 500,
+  "error": "Internal Server Error",
+  "trace": "very long stack trace..."
+}
+```
+
+Bad for API.
+
+We want clean response:
+
+```json
+{
+  "error": "User not found"
+}
+```
+
+So we use Global Exception Handler.
+
+---
+
+# ✅ 2. What happens when exception is thrown
+
+Flow:
+
+```
+Controller
+  ↓
+Service
+  ↓
+Exception thrown
+  ↓
+Spring catches it
+  ↓
+Checks @ExceptionHandler
+  ↓
+Returns ResponseEntity
+```
+
+This is automatic.
+
+---
+
+# ✅ 3. What is @RestControllerAdvice
+
+Your code:
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler
+```
+
+This means:
+
+> Apply this class to all controllers
+
+It is combination of:
+
+```
+@ControllerAdvice
+@ResponseBody
+```
+
+So response will be JSON.
+
+---
+
+# ✅ 4. What is @ExceptionHandler
+
+Example:
+
+```java
+@ExceptionHandler(ResourceNotFoundException.class)
+```
+
+Meaning:
+
+If this exception happens anywhere → call this method.
+
+Spring matches exception type.
+
+---
+
+# ✅ 5. First handler
+
+```java
+@ExceptionHandler(ResourceNotFoundException.class)
+public ResponseEntity<Map<String, String>> handleNotFound(
+        ResourceNotFoundException ex)
+```
+
+When thrown:
+
+```
+throw new ResourceNotFoundException("Plan not found");
+```
+
+Spring calls:
+
+```
+handleNotFound()
+```
+
+Return:
+
+```json
+{
+  "error": "Plan not found"
+}
+```
+
+with status 404.
+
+---
+
+### Code
+
+```java
+return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(Map.of("error", ex.getMessage()));
+```
+
+This creates:
+
+```
+HTTP 404
+{
+  "error": "Plan not found"
+}
+```
+
+---
+
+# ✅ 6. InvalidSubscriptionException
+
+```java
+@ExceptionHandler(InvalidSubscriptionException.class)
+```
+
+Same idea.
+
+Example:
+
+```
+throw new InvalidSubscriptionException(
+   "User already has active subscription"
+);
+```
+
+Response:
+
+```
+400 BAD REQUEST
+{
+  "error": "User already has active subscription"
+}
+```
+
+Good API design.
+
+---
+
+# ✅ 7. RuntimeException handler
+
+```java
+@ExceptionHandler(RuntimeException.class)
+```
+
+Catch all runtime errors.
+
+Example:
+
+```
+NullPointerException
+IllegalArgumentException
+etc
+```
+
+Instead of crash → return clean error.
+
+Important for production.
+
+---
+
+# ✅ 8. Validation exception (important)
+
+This part:
+
+```java
+@ExceptionHandler(MethodArgumentNotValidException.class)
+```
+
+This happens when using:
+
+```
+@Valid
+```
+
+Example:
+
+```java
+@PostMapping
+public void register(@Valid @RequestBody RegisterRequest req)
+```
+
+DTO:
+
+```java
+@NotNull
+@Email
+private String email;
+```
+
+If invalid → Spring throws:
+
+```
+MethodArgumentNotValidException
+```
+
+Then this handler runs.
+
+---
+
+## This code
+
+```java
+List<String> errors = ex.getBindingResult()
+        .getFieldErrors()
+        .stream()
+        .map(e -> e.getField() + ": " + e.getDefaultMessage())
+        .toList();
+```
+
+Gets all validation errors.
+
+Example result:
+
+```
+email: must be valid
+password: size must be >= 6
+```
+
+Response:
+
+```json
+{
+  "errors": [
+    "email: must be valid",
+    "password: size must be >= 6"
+  ]
+}
+```
+
+This looks professional.
+
+---
+
+# ✅ 9. Your custom exceptions
+
+## ResourceNotFoundException
+
+```java
+public class ResourceNotFoundException extends RuntimeException
+```
+
+Used when:
+
+```
+user not found
+plan not found
+subscription not found
+```
+
+Example:
+
+```java
+throw new ResourceNotFoundException("User not found");
+```
+
+---
+
+## InvalidSubscriptionException
+
+```java
+public class InvalidSubscriptionException extends RuntimeException
+```
+
+Used for business rule errors.
+
+Example:
+
+```
+already active subscription
+invalid upgrade
+cancel not allowed
+```
+
+Good separation.
+
+Interview question possible.
+
+---
+
+# ✅ 10. Full flow example
+
+Controller:
+
+```java
+@GetMapping("/plans/{id}")
+public PlanDTO getPlan(@PathVariable Long id) {
+    return service.getPlan(id);
+}
+```
+
+Service:
+
+```java
+Plan plan = repo.findById(id)
+   .orElseThrow(() ->
+       new ResourceNotFoundException("Plan not found")
+   );
+```
+
+Exception thrown →
+
+Spring sees:
+
+```
+@ExceptionHandler(ResourceNotFoundException)
+```
+
+Handler runs →
+
+Response:
+
+```
+404
+{
+  "error": "Plan not found"
+}
+```
+
+Controller never runs again.
+
+This is key idea.
+
+---
+
+# ✅ 11. Why global handler is better than try/catch
+
+Bad:
+
+```java
+try {
+}
+catch(Exception e) {}
+```
+
+in every controller.
+
+Messy.
+
+Global handler:
+
+✔ clean
+✔ reusable
+✔ professional
+✔ interview friendly
+
+---
+
+# ✅ 12. Interview answer
+
+What is @RestControllerAdvice?
+
+> It is used to handle exceptions globally across all controllers. Methods annotated with @ExceptionHandler are automatically called when matching exceptions are thrown.
+
+What is MethodArgumentNotValidException?
+
+> It is thrown when validation on a request DTO fails while using @Valid.
+
+What is ResponseEntity?
+
+> Used to control HTTP status and response body.
+
+Good answers.
