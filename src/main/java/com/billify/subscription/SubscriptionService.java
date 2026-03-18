@@ -5,6 +5,7 @@ import com.billify.exception.InvalidSubscriptionException;
 import com.billify.exception.ResourceNotFoundException;
 import com.billify.mapper.SubscriptionMapper;
 import com.billify.model.*;
+import com.billify.payment.PaymentService;
 import com.billify.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ public class SubscriptionService {
     private final SubscriptionRepository subscriptionRepository;
     private final PlanRepository         planRepository;
     private final UserRepository         userRepository;
+    private final PaymentService paymentService;
 
     // ── SUBSCRIBE service: subscribe to a plan
     @Transactional
@@ -56,6 +58,7 @@ public class SubscriptionService {
                 .build();
 
         Subscription saved = subscriptionRepository.save(subscription);
+        paymentService.processPayment(saved);
         log.info("User {} subscribed to plan {}", email, plan.getName());
         return SubscriptionMapper.toDTO(saved);
     }
@@ -120,9 +123,13 @@ public class SubscriptionService {
                 .build();
 
         Subscription saved = subscriptionRepository.save(upgraded);
+
+        // Process payment for new plan — rolls back if failed
+        paymentService.processPayment(saved);
         log.info("User {} upgraded from plan {} to plan {}",
                 email, current.getPlan().getName(), newPlan.getName());
         return SubscriptionMapper.toDTO(saved);
+
     }
 
     // ── VIEW MY SUBSCRIPTION ───────────────────────────────
