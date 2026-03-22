@@ -4,19 +4,17 @@ const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
 });
 
-// Attach JWT token to every request automatically
 api.interceptors.request.use((config) => {
-    console.log("config before setting token: ",config);
+
     const token = localStorage.getItem('token');
+
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
-    console.log("config after setting token: ",config);
     return config;
 });
 
-// If backend returns 401, clear token and redirect to login
 api.interceptors.response.use(
     (response) => response,
     (error) => {
