@@ -15,21 +15,20 @@ export default function Plans() {
     const navigate   = useNavigate();
 
     useEffect(() => {
+        const fetchPlans = async () => {
+            setLoading(true);
+            try {
+                const res = await api.get(`/plans?page=${page}&size=5`);
+                setPlans(res.data.content);
+                setTotalPages(res.data.totalPages);
+            } catch (err) {
+                setError('Failed to load plans', err);
+            } finally {
+                setLoading(false);
+            }
+        };
         fetchPlans();
     }, [page]);
-
-    const fetchPlans = async () => {
-        setLoading(true);
-        try {
-            const res = await api.get(`/plans?page=${page}&size=5`);
-            setPlans(res.data.content);
-            setTotalPages(res.data.totalPages);
-        } catch (err) {
-            setError('Failed to load plans');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleSubscribe = async (planId) => {
         setSubscribing(planId);

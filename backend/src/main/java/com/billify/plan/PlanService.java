@@ -48,4 +48,13 @@ public class PlanService {
                         new ResourceNotFoundException("Plan not found with id: " + id));
         return PlanMapper.toDTO(plan);
     }
+    public void deletePlan(Long id) {
+        Plan plan = planRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Plan not found with id: " + id));
+        planRepository.delete(plan);
+        log.info("Plan deleted: {}", plan.getName());
+    }
+
+
 }

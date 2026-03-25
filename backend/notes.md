@@ -759,3 +759,370 @@ What is ResponseEntity?
 > Used to control HTTP status and response body.
 
 Good answers.
+
+
+
+
+
+
+
+# 1️⃣ What is CORS?
+
+CORS = Cross-Origin Resource Sharing
+
+Browser security rule:
+
+> Frontend running on one origin cannot call backend on another origin unless backend allows it.
+
+Origin = protocol + host + port
+
+Example in your project:
+
+```
+Frontend → http://localhost:5173
+Backend  → http://localhost:8187
+```
+
+Different port → different origin → CORS needed.
+
+Without CORS → browser blocks request before it reaches backend.
+
+Important:
+
+✔ Postman works without CORS
+✔ Browser needs CORS
+
+---
+
+# 2️⃣ Why you need CORS in Billify
+
+Your setup:
+
+```
+React (5173) → Spring Boot (8187)
+```
+
+Browser sends:
+
+```
+OPTIONS /api/plans
+```
+
+This is called:
+
+```
+Preflight request
+```
+
+Spring must respond with:
+
+```
+Access-Control-Allow-Origin
+Access-Control-Allow-Methods
+Access-Control-Allow-Headers
+```
+
+Your CorsConfig does this.
+
+---
+
+# 3️⃣ Your CorsConfig explained line-by-line
+
+### Class
+
+```java
+@Configuration
+public class CorsConfig {
+```
+
+@Configuration → Spring config class
+Spring will create beans from here.
+
+---
+
+### Inject frontend url
+
+```java
+@Value("${frontend.url}")
+private String frontendUrl;
+```
+
+Reads from application.yml
+
+```
+frontend:
+  url: http://localhost:5173
+```
+
+Good practice ✅
+
+Not hardcoding.
+
+---
+
+### Bean
+
+```java
+@Bean
+public CorsFilter corsFilter()
+```
+
+Spring will register this filter in filter chain.
+
+CorsFilter runs before controller.
+
+---
+
+### Create config
+
+```java
+CorsConfiguration config = new CorsConfiguration();
+```
+
+This object defines CORS rules.
+
+---
+
+### Allow origin
+
+```java
+config.addAllowedOrigin(frontendUrl);
+```
+
+Only allow this frontend.
+
+Good practice.
+
+Alternative:
+
+```
+config.addAllowedOrigin("*")
+```
+
+But not safe.
+
+---
+
+### Allow methods
+
+```java
+config.addAllowedMethod("*");
+```
+
+Allow:
+
+```
+GET
+POST
+PUT
+DELETE
+OPTIONS
+PATCH
+```
+
+Good for API.
+
+---
+
+### Allow headers
+
+```java
+config.addAllowedHeader("*");
+```
+
+Allows:
+
+```
+Authorization
+Content-Type
+Accept
+```
+
+Needed for JWT.
+
+Without this → token blocked.
+
+---
+
+### Allow credentials
+
+```java
+config.setAllowCredentials(true);
+```
+
+Needed when:
+
+```
+Authorization header
+Cookies
+JWT
+Session
+```
+
+If false → browser removes Authorization.
+
+Important for JWT apps.
+
+---
+
+### Register config
+
+```java
+UrlBasedCorsConfigurationSource source =
+        new UrlBasedCorsConfigurationSource();
+```
+
+This maps CORS rules to URL paths.
+
+---
+
+### Apply to /api/**
+
+```java
+source.registerCorsConfiguration("/api/**", config);
+```
+
+Only apply CORS to:
+
+```
+/api/plans
+/api/auth
+/api/subscriptions
+```
+
+Not to:
+
+```
+/swagger
+/actuator
+/static
+```
+
+Good practice.
+
+---
+
+### Return filter
+
+```java
+return new CorsFilter(source);
+```
+
+Spring adds this to filter chain.
+
+Flow becomes:
+
+```
+Request
+ ↓
+CorsFilter
+ ↓
+SecurityFilter
+ ↓
+Controller
+```
+
+---
+
+# 4️⃣ How request works internally
+
+Frontend:
+
+```
+GET /api/plans
+Authorization: Bearer token
+```
+
+Browser sends:
+
+```
+OPTIONS /api/plans
+```
+
+CorsFilter runs:
+
+```
+Check origin
+Check method
+Check header
+Allow
+```
+
+Then real request:
+
+```
+GET /api/plans
+```
+
+Then:
+
+```
+JwtFilter
+Security
+Controller
+```
+
+---
+
+# 5️⃣ Is this boilerplate?
+
+YES ✅
+
+This is standard CORS config for:
+
+* Spring Boot + React
+* Spring Boot + Angular
+* Spring Boot + Next.js
+* Spring Boot + Vue
+
+You can reuse it in most projects.
+
+Only change:
+
+```
+frontend.url
+```
+
+---
+
+# 6️⃣ Boilerplate version (recommended template)
+
+You can reuse this in all projects.
+
+```java
+@Configuration
+public class CorsConfig {
+
+    @Value("${frontend.url}")
+    private String frontendUrl;
+
+    @Bean
+    public CorsFilter corsFilter() {
+
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.addAllowedOrigin(frontendUrl);
+        config.addAllowedMethod("*");
+        config.addAllowedHeader("*");
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration("/**", config);
+
+        return new CorsFilter(source);
+    }
+}
+```
+
+---
+
+# 7️⃣ Alternative (Spring Security way)
+
+Modern way:
+
+```
+http.cors()
+```
+

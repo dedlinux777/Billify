@@ -1,12 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
+import AdminRoute from './components/AdminRoute';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Plans from './pages/Plans';
 import MySubscription from './pages/MySubscription';
 import BillingHistory from './pages/BillingHistory';
+import AdminPlans from './pages/AdminPlans';
 
 export default function App() {
   return (
@@ -25,6 +27,11 @@ export default function App() {
             } />
             <Route path="/billing" element={
               <PrivateRoute><BillingHistory /></PrivateRoute>
+            } />
+
+            {/* Admin routes */}
+            <Route path="/admin/plans" element={
+              <AdminRoute><AdminPlans /></AdminRoute>
             } />
           </Routes>
         </BrowserRouter>

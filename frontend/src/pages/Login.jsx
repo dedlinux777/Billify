@@ -21,7 +21,14 @@ export default function Login() {
         try {
             const res = await api.post('/auth/login', form);
             login(res.data.token);
-            navigate('/plans');
+
+            // Decode role and route accordingly
+            const payload = JSON.parse(atob(res.data.token.split('.')[1]));
+            if (payload.role === 'ADMIN') {
+                navigate('/admin/plans');
+            } else {
+                navigate('/plans');
+            }
         } catch (err) {
             setError(err.response?.data?.error || 'Login failed');
         } finally {

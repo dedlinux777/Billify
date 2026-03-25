@@ -3,15 +3,20 @@ spring:
     name: billify
 
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:billify_db}?createDatabaseIfNotExist=true
+    url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        globally_quoted_identifiers: false
 
 # Custom JWT Properties
 jwt:
@@ -20,7 +25,8 @@ jwt:
   refresh-token-expiration: ${refreshTokenExpiration}
 
 server:
-  port: ${SERVER_PORT}
+  port: ${SERVER_PORT:8080}
 
 frontend:
   url: ${FRONTEND_URL}
+

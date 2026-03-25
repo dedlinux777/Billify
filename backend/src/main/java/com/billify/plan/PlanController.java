@@ -35,4 +35,13 @@ public class PlanController {
     public ResponseEntity<PlanDTO> getPlanById(@PathVariable Long id) {
         return ResponseEntity.ok(planService.getPlanById(id));
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deletePlan(@PathVariable Long id) {
+        planService.deletePlan(id);
+        return ResponseEntity.noContent().build();
+    }
+
+
 }
