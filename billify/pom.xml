@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.billify</groupId>
-    <artifactId>billify</artifactId>
+    <artifactId>SaasCore</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>billify</name>
@@ -112,7 +112,13 @@
             <version>2.3.0</version>
         </dependency>
 
-
+        <!-- Source: https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-aop -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+            <version>3.5.13</version>
+            <scope>compile</scope>
+        </dependency>
 
 
 
