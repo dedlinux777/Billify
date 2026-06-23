@@ -8,7 +8,6 @@ import com.saas.billing.model.Payment;
 import com.saas.billing.model.PaymentStatus;
 import com.saas.billing.model.Subscription;
 import com.saas.billing.model.User;
-import com.saas.billing.repository.PaymentRepository;
 import com.saas.billing.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

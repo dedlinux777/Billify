@@ -12,6 +12,8 @@ public class PlanMapper {
                 .description(plan.getDescription())
                 .price(plan.getPrice())
                 .durationInDays(plan.getDurationInDays())
+                .invoiceLimit(plan.getInvoiceLimit())
+                .apiCallLimit(plan.getApiCallLimit())
                 .build();
     }
 
@@ -21,6 +23,8 @@ public class PlanMapper {
                 .description(dto.getDescription())
                 .price(dto.getPrice())
                 .durationInDays(dto.getDurationInDays())
+                .invoiceLimit(dto.getInvoiceLimit())
+                .apiCallLimit(dto.getApiCallLimit())
                 .build();
     }
 

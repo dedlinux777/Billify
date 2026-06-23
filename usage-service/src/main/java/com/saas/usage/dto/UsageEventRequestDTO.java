@@ -14,4 +14,5 @@ import lombok.Setter;
 public class UsageEventRequestDTO {
     private Long userId;
     private String resourceType;
+    private Long apiKeyId;
 }

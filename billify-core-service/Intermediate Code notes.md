@@ -41,7 +41,7 @@ import exception.com.saas.billing.ResourceNotFoundException;
 import mapper.com.saas.billing.PlanMapper;
 import model.com.saas.billing.Plan;
 import repository.com.saas.billing.PlanRepository;
-import com.saas.billing.dto.PlanRequestDTO;
+import com.saas.billing.plan.PlanRequestDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -91,7 +91,7 @@ planRepository.findAll(pageable) returns a Page<Plan>. Spring Data builds the LI
 ```java
 package com.billing.plan;
 
-import com.saas.billing.dto.PlanRequestDTO;
+import com.saas.billing.plan.PlanRequestDTO;
 import dto.com.saas.billing.PlanDTO;
 import com.saas.billing.plan.PlanService;
 import jakarta.validation.Valid;
@@ -157,8 +157,8 @@ import com.saas.billing.model.Plan;
 import com.saas.billing.model.Subscription;
 import com.saas.billing.model.SubscriptionStatus;
 import com.saas.billing.model.User;
-import com.saas.billing.repository.PlanRepository;
-import com.saas.billing.repository.SubscriptionRepository;
+import com.saas.billing.plan.PlanRepository;
+import com.saas.billing.subscription.SubscriptionRepository;
 import com.saas.billing.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

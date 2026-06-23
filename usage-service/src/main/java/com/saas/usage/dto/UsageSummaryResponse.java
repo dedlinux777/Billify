@@ -1,6 +1,5 @@
-package com.saas.billing.dto;
+package com.saas.usage.dto;
 
-import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,8 +11,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CreateInvoiceRequestDTO {
+public class UsageSummaryResponse {
     private Long userId;
-    private String customerName;
-    private BigDecimal amount;
+    private Long invoiceCount;
+    private Long apiCallCount;
 }

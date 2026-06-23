@@ -10,4 +10,6 @@ public class PlanDTO {
     private String description;
     private Double price;
     private Integer durationInDays;
+    private Long invoiceLimit;
+    private Long apiCallLimit;
 }

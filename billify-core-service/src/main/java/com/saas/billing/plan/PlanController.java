@@ -1,7 +1,6 @@
 package com.saas.billing.plan;
 
 import com.saas.billing.dto.PlanDTO;
-import com.saas.billing.dto.PlanRequestDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

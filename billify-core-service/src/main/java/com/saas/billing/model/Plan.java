@@ -25,6 +25,12 @@ public class Plan {
     @Column(nullable = false)
     private Integer durationInDays;
 
+    @Column(name = "invoice_limit")
+    private Long invoiceLimit;
+
+    @Column(name = "api_call_limit")
+    private Long apiCallLimit;
+
     @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL)
     private List<Subscription> subscriptions;
 

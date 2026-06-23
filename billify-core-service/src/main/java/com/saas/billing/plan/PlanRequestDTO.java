@@ -1,4 +1,4 @@
-package com.saas.billing.dto;
+package com.saas.billing.plan;
 
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -18,4 +18,7 @@ public class PlanRequestDTO {
     @NotNull(message = "Duration is required")
     @Min(value = 1, message = "Duration must be at least 1 day")
     private Integer durationInDays;
+
+    private Long invoiceLimit;
+    private Long apiCallLimit;
 }

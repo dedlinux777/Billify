@@ -32,6 +32,9 @@ public class UsageEvent {
     @Column(name = "resource_type", nullable = false)
     private String resourceType;
 
+    @Column(name = "api_key_id")
+    private Long apiKeyId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 }

@@ -1,4 +1,4 @@
-package com.saas.billing.repository;
+package com.saas.billing.payment;
 
 import com.saas.billing.model.Payment;
 import com.saas.billing.model.User;

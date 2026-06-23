@@ -1,11 +1,9 @@
 package com.saas.billing.plan;
 
 import com.saas.billing.dto.PlanDTO;
-import com.saas.billing.dto.PlanRequestDTO;
 import com.saas.billing.exception.ResourceNotFoundException;
 import com.saas.billing.mapper.PlanMapper;
 import com.saas.billing.model.Plan;
-import com.saas.billing.repository.PlanRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,6 +24,8 @@ public class PlanService {
                 .description(request.getDescription())
                 .price(request.getPrice())
                 .durationInDays(request.getDurationInDays())
+                .invoiceLimit(request.getInvoiceLimit())
+                .apiCallLimit(request.getApiCallLimit())
                 .build();
         // save the request
         Plan saved = planRepository.save(plan);

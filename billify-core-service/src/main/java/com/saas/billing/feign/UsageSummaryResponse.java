@@ -11,8 +11,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UsageEventRequestDTO {
+public class UsageSummaryResponse {
     private Long userId;
-    private String resourceType;
-    private Long apiKeyId;
+    private Long invoiceCount;
+    private Long apiCallCount;
 }

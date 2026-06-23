@@ -1,4 +1,4 @@
-package com.saas.billing.repository;
+package com.saas.billing.subscription;
 
 import com.saas.billing.model.Subscription;
 import com.saas.billing.model.SubscriptionStatus;

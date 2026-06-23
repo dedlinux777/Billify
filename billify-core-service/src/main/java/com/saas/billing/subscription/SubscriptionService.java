@@ -9,8 +9,8 @@ import com.saas.billing.model.Subscription;
 import com.saas.billing.model.SubscriptionStatus;
 import com.saas.billing.model.User;
 import com.saas.billing.payment.PaymentService;
-import com.saas.billing.repository.PlanRepository;
-import com.saas.billing.repository.SubscriptionRepository;
+import com.saas.billing.apikey.ApiKeyService;
+import com.saas.billing.plan.PlanRepository;
 import com.saas.billing.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +29,7 @@ public class SubscriptionService {
     private final PlanRepository planRepository;
     private final UserRepository userRepository;
     private final PaymentService paymentService;
+    private final ApiKeyService apiKeyService;
 
     // ── SUBSCRIBE service: subscribe to a plan
     @Transactional
@@ -64,6 +65,7 @@ public class SubscriptionService {
 
         Subscription saved = subscriptionRepository.save(subscription);
         paymentService.processPayment(saved);
+        apiKeyService.generateDefaultKey(user.getId()); //
         log.info("User {} subscribed to plan {}", email, plan.getName());
         return SubscriptionMapper.toDTO(saved);
     }
@@ -131,6 +133,7 @@ public class SubscriptionService {
 
         // Process payment for new plan — rolls back if failed
         paymentService.processPayment(saved);
+        apiKeyService.generateDefaultKey(user.getId());
         log.info("User {} upgraded from plan {} to plan {}",
                 email, current.getPlan().getName(), newPlan.getName());
         return SubscriptionMapper.toDTO(saved);

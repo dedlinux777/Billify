@@ -1,4 +1,4 @@
-package com.saas.billing.repository;
+package com.saas.billing.plan;
 
 import com.saas.billing.model.Plan;
 import org.springframework.data.jpa.repository.JpaRepository;
