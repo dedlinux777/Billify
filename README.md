@@ -156,3 +156,11 @@ To launch this full stack app online completely on free tiers, implement the fol
 
 * Use a serverless/cloud hosting solution like **Neon** or **Supabase** for a free, persistent PostgreSQL cluster.
 * Update your `pom.xml` dependency from `mysql-connector-j` to `postgresql` driver and change your configuration profile dialect parameters accordingly to migrate smoothly from MySQL to PostgreSQL.
+
+
+
+
+
+
+
+

@@ -1,6 +1,6 @@
 package com.saas.billing.repository;
 
-import com.saas.billing.model.User;
+import com.saas.billing.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 

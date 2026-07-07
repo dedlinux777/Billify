@@ -1,7 +1,7 @@
 package com.saas.usage.controller;
 
-import com.saas.usage.dto.UsageEventRequestDTO;
-import com.saas.usage.dto.UsageEventResponseDTO;
+import com.saas.usage.dto.request.UsageEventRequest;
+import com.saas.usage.dto.response.UsageEventResponse;
 import com.saas.usage.service.UsageEventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,12 +17,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class UsageEventController {
 
     private final UsageEventService usageEventService;
+    @Value("${server.port}")
+    private String serverPort;
 
     @PostMapping
-    public ResponseEntity<UsageEventResponseDTO> createEvent(@RequestBody UsageEventRequestDTO request) {
-
+    public ResponseEntity<UsageEventResponse> createEvent(@RequestBody UsageEventRequest request) {
+        log.info(
+                "[INSTANCE {}] POST usage event for user {}",
+                serverPort,
+                request.userId()
+        );
         usageEventService.saveEvent(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new UsageEventResponseDTO("Usage event recorded successfully"));
+                .body(new UsageEventResponse("Usage event recorded successfully"));
     }
 }

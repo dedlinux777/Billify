@@ -1,16 +1,12 @@
 package com.saas.billing.invoice;
 
-import com.saas.billing.model.ApiKey;
-import com.saas.billing.apikey.ApiKeyService;
-import com.saas.billing.feign.UsageClient;
-import com.saas.billing.feign.UsageSummaryResponse;
-import com.saas.billing.model.Plan;
-import com.saas.billing.model.Role;
-import com.saas.billing.model.Subscription;
-import com.saas.billing.model.SubscriptionStatus;
-import com.saas.billing.model.User;
-import com.saas.billing.subscription.SubscriptionRepository;
-import com.saas.billing.repository.UserRepository;
+import com.saas.billing.client.UsageClient;
+import com.saas.billing.client.dto.UsageSummaryResponse;
+import com.saas.billing.dto.request.CreateInvoiceRequest;
+import com.saas.billing.dto.response.InvoiceResponse;
+import com.saas.billing.entity.*;
+import com.saas.billing.repository.*;
+import com.saas.billing.service.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,8 +25,6 @@ import static org.mockito.Mockito.*;
 public class InvoiceServiceTest {
 
     @Mock
-    private InvoiceRepository invoiceRepository;
-    @Mock
     private UsageClient usageClient;
     @Mock
     private ApiKeyService apiKeyService;
@@ -38,6 +32,8 @@ public class InvoiceServiceTest {
     private UserRepository userRepository;
     @Mock
     private SubscriptionRepository subscriptionRepository;
+    @Mock
+    private InvoicePersistenceService invoicePersistenceService;
 
     @InjectMocks
     private InvoiceService invoiceService;
@@ -58,7 +54,7 @@ public class InvoiceServiceTest {
 
         apiKey = ApiKey.builder()
                 .id(100L)
-                .userId(1L)
+                .user(user)
                 .keyIdentifier("blfy_id_test")
                 .keyHash("hashed_secret")
                 .active(true)
@@ -81,7 +77,7 @@ public class InvoiceServiceTest {
 
     @Test
     void testCreateInvoice_Success() {
-        CreateInvoiceRequestDTO request = CreateInvoiceRequestDTO.builder()
+        CreateInvoiceRequest request = CreateInvoiceRequest.builder()
                 .customerName("Customer Inc")
                 .amount(BigDecimal.valueOf(150.00))
                 .build();
@@ -98,28 +94,28 @@ public class InvoiceServiceTest {
                 .build();
         when(usageClient.getUsageSummary(1L)).thenReturn(usageSummary);
 
-        com.saas.billing.model.Invoice mockInvoice = com.saas.billing.model.Invoice.builder()
+        Invoice mockInvoice = Invoice.builder()
                 .id(999L)
-                .userId(1L)
+                .user(user)
                 .customerName("Customer Inc")
                 .amount(BigDecimal.valueOf(150.00))
-                .status(com.saas.billing.model.InvoiceStatus.GENERATED)
+                .status(InvoiceStatus.GENERATED)
                 .build();
-        when(invoiceRepository.save(any(com.saas.billing.model.Invoice.class))).thenReturn(mockInvoice);
+        when(invoicePersistenceService.saveInvoiceAndPropagate(any(User.class), any(ApiKey.class), any(CreateInvoiceRequest.class)))
+                .thenReturn(mockInvoice);
 
-        InvoiceResponseDTO response = invoiceService.createInvoice(request, "raw_api_key");
+        InvoiceResponse response = invoiceService.createInvoice(request, "raw_api_key");
 
         assertNotNull(response);
         assertEquals(999L, response.getId());
         assertEquals("Customer Inc", response.getCustomerName());
 
-        verify(usageClient, times(1)).createEvent(any());
-        verify(invoiceRepository, times(1)).save(any());
+        verify(invoicePersistenceService, times(1)).saveInvoiceAndPropagate(any(), any(), any());
     }
 
     @Test
     void testCreateInvoice_ExceedsLimit() {
-        CreateInvoiceRequestDTO request = CreateInvoiceRequestDTO.builder()
+        CreateInvoiceRequest request = CreateInvoiceRequest.builder()
                 .customerName("Customer Inc")
                 .amount(BigDecimal.valueOf(150.00))
                 .build();
@@ -141,7 +137,6 @@ public class InvoiceServiceTest {
         });
 
         assertTrue(exception.getMessage().contains("Invoice quota limit exceeded"));
-        verify(invoiceRepository, never()).save(any());
-        verify(usageClient, never()).createEvent(any());
+        verify(invoicePersistenceService, never()).saveInvoiceAndPropagate(any(), any(), any());
     }
 }

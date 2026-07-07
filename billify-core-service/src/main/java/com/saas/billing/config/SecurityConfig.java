@@ -1,6 +1,6 @@
 package com.saas.billing.config;
 
-import com.saas.billing.jwt.JwtAuthFilter;
+import com.saas.billing.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
@@ -42,6 +42,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/invoices", "/api/invoices/**").permitAll()
                         .requestMatchers("/api/apikeys/**").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/plans").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/plans", "/api/plans/**").authenticated()
                         .requestMatchers("/api/subscriptions/**").authenticated()
@@ -49,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,   "/api/plans").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/plans/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET,    "/api/plans", "/api/plans/**").authenticated()
+                        .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter,

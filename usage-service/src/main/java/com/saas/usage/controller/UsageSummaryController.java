@@ -1,7 +1,7 @@
 package com.saas.usage.controller;
 
-import com.saas.usage.dto.UsageSummaryResponse;
-import com.saas.usage.model.UsageSummary;
+import com.saas.usage.dto.response.UsageSummaryResponse;
+import com.saas.usage.entity.UsageSummary;
 import com.saas.usage.repository.UsageSummaryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,15 +12,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/usage")
+@RequestMapping("/internal/usage")
 @RequiredArgsConstructor
 @Slf4j
 public class UsageSummaryController {
 
     private final UsageSummaryRepository usageSummaryRepository;
 
+    @Value("${server.port}")
+    private String serverPort;
+
     @GetMapping("/{userId}")
     public ResponseEntity<UsageSummaryResponse> getUsageSummary(@PathVariable("userId") Long userId) {
+        log.info(
+                "[INSTANCE {}] GET usage summary for user {}",
+                serverPort,
+                userId
+        );
         log.info("Fetching usage summary for user: {}", userId);
 
         UsageSummaryResponse response = usageSummaryRepository.findByUserId(userId)

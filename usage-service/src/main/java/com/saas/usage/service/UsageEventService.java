@@ -1,8 +1,8 @@
 package com.saas.usage.service;
 
-import com.saas.usage.dto.UsageEventRequestDTO;
-import com.saas.usage.model.UsageEvent;
-import com.saas.usage.model.UsageSummary;
+import com.saas.usage.dto.request.UsageEventRequest;
+import com.saas.usage.entity.UsageEvent;
+import com.saas.usage.entity.UsageSummary;
 import com.saas.usage.repository.UsageEventRepository;
 import com.saas.usage.repository.UsageSummaryRepository;
 import java.time.LocalDateTime;
@@ -19,8 +19,10 @@ public class UsageEventService {
     private final UsageEventRepository usageEventRepository;
     private final UsageSummaryRepository usageSummaryRepository;
 
+
+
     @Transactional
-    public void saveEvent(UsageEventRequestDTO request) {
+    public void saveEvent(UsageEventRequest request) {
         log.info("Saving usage event for user: {}, resource: {}, apiKeyId: {}", 
                 request.getUserId(), request.getResourceType(), request.getApiKeyId());
         
