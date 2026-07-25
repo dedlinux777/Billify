@@ -1,0 +1,5 @@
+com\saas\gateway\filter\CorrelationIdFilter.class
+com\saas\gateway\ApiGatewayApplication.class
+com\saas\gateway\filter\RequestLoggingFilter.class
+com\saas\gateway\filter\JwtAuthenticationFilter$Config.class
+com\saas\gateway\filter\JwtAuthenticationFilter.class

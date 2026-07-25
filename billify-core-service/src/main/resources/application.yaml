@@ -35,6 +35,11 @@ eureka:
     service-url:
       defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
 
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p --- [%thread] %-40.40logger{39} [correlationId: %X{correlationId}] : %m%n"
+
+
 
 management:
   endpoints:

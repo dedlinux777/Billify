@@ -2038,3 +2038,220 @@ I would define it as:
 ---
 
 
+
+
+## Phase 2 — Milestone 3: API Gateway and Edge Architecture
+The main purpose of Milestone 3 should be:
+
+> Introduce a single entry point for external clients while keeping internal service-to-service communication private and discovery-based.
+
+At the end of Milestone 2, your architecture is approximately:
+
+```text
+Client
+   │
+   ▼
+Billify Core Service
+   │
+   │ Feign + Eureka
+   ▼
+Usage Service
+
+All services
+   │
+   ▼
+Eureka Server
+```
+
+The problem is that clients still know the Core Service's physical address:
+
+```text
+http://localhost:8080
+```
+
+As more services appear, the client could eventually need to know:
+
+```text
+Core Service          :8080
+Usage Service         :8081
+Notification Service  :8083
+```
+
+That is exactly what the Gateway should prevent.
+
+After Milestone 3:
+
+```text
+                        Client
+                           │
+                           │ Single Entry Point
+                           ▼
+                  ┌─────────────────┐
+                  │   API Gateway   │
+                  └────────┬────────┘
+                           │
+                           │ Eureka Discovery
+                           ▼
+                  ┌─────────────────┐
+                  │     Eureka      │
+                  └─────────────────┘
+                     ▲           ▲
+                     │           │
+                     ▼           ▼
+             Billify Core     Usage Service
+                    │
+                    │ Feign + Eureka
+                    └──────────────►
+```
+
+The client should know only the Gateway.
+
+## Milestone 3 deliverables
+
+1. **Correct the invoice transaction boundary.** Refactor the current flow so the Core database transaction does not remain open during the Feign call to Usage Service. The intended synchronous Phase 2 flow should become:
+
+```text
+Validate API key
+        ↓
+Read usage summary remotely
+        ↓
+Validate quota
+        ↓
+BEGIN local transaction
+        ↓
+Save invoice
+        ↓
+COMMIT local transaction
+        ↓
+Call Usage Service
+```
+
+This does not fully solve distributed consistency. If the invoice commits and the Usage call fails, you still have an inconsistency. That is expected for now and will become one of the motivations for RabbitMQ and eventual consistency later. The goal here is simply to stop pretending a local `@Transactional` annotation can make a remote HTTP call transactional.
+
+2. **Create a dedicated `api-gateway` application.** It should be an independent Spring Boot application using Spring Cloud Gateway. It contains no billing domain logic, repositories, JPA entities, or business database.
+
+3. **Register the Gateway with Eureka and enable discovery.** The Gateway should use logical service names rather than physical Core or Usage URLs. It may also register itself as a Eureka client, but the important functional role is that it consumes the registry to discover downstream services.
+
+4. **Define explicit Gateway routes.** I recommend explicit routes rather than automatically exposing every Eureka-registered application. For example:
+
+```text
+/api/auth/**           → billify-core-service
+/api/plans/**          → billify-core-service
+/api/subscriptions/**  → billify-core-service
+/api/payments/**       → billify-core-service
+/api/invoices/**       → billify-core-service
+/api/api-keys/**       → billify-core-service
+```
+
+This gives you deliberate control over the public API surface.
+
+5. **Protect internal APIs from external routing.** This is one of the most important deliverables because Milestone 1 already created:
+
+```text
+/api/**       → External
+/internal/**  → Service-to-service only
+```
+
+The Gateway must not publicly route:
+
+```text
+/internal/usage/**
+```
+
+Core should continue calling Usage directly through Feign and Eureka:
+
+```text
+Core
+   │
+   │ Feign
+   ▼
+Usage
+```
+
+not:
+
+```text
+Core
+   │
+   ▼
+Gateway
+   │
+   ▼
+Usage
+```
+
+The Gateway is the north-south traffic entry point. Feign handles east-west service communication.
+
+6. **Move the frontend/client entry point to the Gateway.** Instead of the frontend calling Core directly, it should call only the Gateway address. The expected public flow becomes:
+
+```text
+Frontend / Postman
+        ↓
+API Gateway
+        ↓
+Eureka-based route resolution
+        ↓
+Core Service
+```
+
+7. **Handle CORS at the edge.** Since the Gateway becomes the public entry point, CORS should be centralized there rather than independently managed by every backend service. We should carefully audit existing Core CORS configuration to avoid duplicate or conflicting CORS headers.
+
+8. **Design the JWT authentication boundary.** This requires a deliberate decision rather than blindly copying JWT validation into the Gateway. We need to decide whether, for this milestone:
+
+```text
+Option A:
+Gateway routes requests
+Core continues validating JWT
+```
+
+or:
+
+```text
+Option B:
+Gateway validates JWT
+Core trusts authenticated downstream requests
+```
+
+For your learning roadmap, I currently lean toward a staged approach: first make routing work while Core remains the security authority, then move appropriate authentication concerns to the Gateway carefully. API-key-protected invoice APIs also need separate treatment from user JWT APIs.
+
+9. **Add Gateway cross-cutting concerns.** Introduce focused request logging and correlation identifiers so one request can be followed conceptually as:
+
+```text
+Request ID: abc-123
+
+Gateway
+   ↓
+Core
+   ↓
+Usage
+```
+
+Do not add Zipkin yet; this is only groundwork for future distributed tracing.
+
+10. **Test dynamic routing and multiple instances.** With multiple Core or Usage instances registered, verify that Gateway routing remains discovery-based. Restart services on different ports without changing Gateway configuration.
+
+11. **Test failure scenarios.** Verify behavior when Core is unavailable, Eureka is unavailable after caches are populated, an unknown route is requested, an internal endpoint is requested through the Gateway, and a downstream service restarts on another port.
+
+12. **Perform a final Phase 2 architecture audit.** By the end, there should be no external client dependence on service ports, no public route to internal APIs, no hardcoded service locations, no business logic in the Gateway, no Core-to-Usage communication routed through the Gateway, and no database transaction held open across the Usage Feign write.
+
+So I would define the final Milestone 3 checklist as:
+
+```text
+Phase 2 — Milestone 3
+
+[ ] Fix InvoicePersistenceService transaction boundary
+[ ] Create API Gateway
+[ ] Register Gateway with Eureka
+[ ] Configure discovery-based routing
+[ ] Define explicit public routes
+[ ] Keep /internal/** private
+[ ] Route frontend/Postman traffic through Gateway
+[ ] Centralize CORS
+[ ] Decide and implement the JWT security boundary
+[ ] Preserve X-API-KEY invoice authentication
+[ ] Add request/correlation ID groundwork
+[ ] Test routing with dynamic service instances
+[ ] Test downstream failure behavior
+[ ] Run full regression tests
+[ ] Complete final Phase 2 architecture audit
+```
