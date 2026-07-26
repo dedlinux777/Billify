@@ -41,7 +41,7 @@ import exception.com.saas.billing.ResourceNotFoundException;
 import mapper.com.saas.billing.PlanMapper;
 import model.com.saas.billing.Plan;
 import repository.com.saas.billing.PlanRepository;
-import com.saas.billing.dto.PlanRequestDTO;
+import com.saas.billing.plan.PlanRequestDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -91,7 +91,7 @@ planRepository.findAll(pageable) returns a Page<Plan>. Spring Data builds the LI
 ```java
 package com.billing.plan;
 
-import com.saas.billing.dto.PlanRequestDTO;
+import com.saas.billing.plan.PlanRequestDTO;
 import dto.com.saas.billing.PlanDTO;
 import com.saas.billing.plan.PlanService;
 import jakarta.validation.Valid;
@@ -157,8 +157,8 @@ import com.saas.billing.model.Plan;
 import com.saas.billing.model.Subscription;
 import com.saas.billing.model.SubscriptionStatus;
 import com.saas.billing.model.User;
-import com.saas.billing.repository.PlanRepository;
-import com.saas.billing.repository.SubscriptionRepository;
+import com.saas.billing.plan.PlanRepository;
+import com.saas.billing.subscription.SubscriptionRepository;
 import com.saas.billing.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -877,7 +877,364 @@ http.cors()
 ```
 
 
+# 📝 Java Microservices Notes: Method Overloading in DTO Mappers
+
+### 🚀 The Real-World Problem
+
+We modified our `SubscriptionDTO` by adding a new field: `rawApiKey`. This key is generated **only** when a user creates a brand new subscription or upgrades their plan.
+
+However, the existing `SubscriptionMapper.toDTO(subscription)` was being used across multiple other features in the `SubscriptionService` (like viewing subscription history, canceling, or fetching current details) where **no new API key is generated**.
+
+If we simply modified the single existing mapper method to strictly require an API key parameter, we would have broken compilation across all those other features.
+
+---
+
+### 💡 The Solution: Method Overloading
+
+Instead of creating a completely separate method with a confusing name (e.g., `toDTOWithApiKey`), we used **Method Overloading**. This allowed us to keep the clean, descriptive method name `toDTO` while changing its parameter behavior depending on the business context.
+
+#### 1. The Overloaded Mapper Implementation
+
+```java
+package com.saas.billing.mapper;
+
+import com.saas.billing.dto.SubscriptionDTO;
+import com.saas.billing.model.Subscription;
+
+public class SubscriptionMapper {
+
+    // Version A: Standard Single-Argument Mapper
+    // Used when retrieving history or canceling (where rawApiKey is not applicable)
+    public static SubscriptionDTO toDTO(Subscription subscription) {
+        // DRY Principle: Reuse Version B by passing null for the apiKey parameter
+        return toDTO(subscription, null);
+    }
+
+    // Version B: Overloaded Two-Argument Mapper
+    // Used when a fresh action occurs and a raw API key needs to be exposed once
+    public static SubscriptionDTO toDTO(Subscription subscription, String apiKey) {
+        return SubscriptionDTO.builder()
+                .id(subscription.getId())
+                .planName(subscription.getPlan().getName())
+                .planPrice(subscription.getPlan().getPrice())
+                .status(subscription.getStatus())
+                .startDate(subscription.getStartDate())
+                .endDate(subscription.getEndDate())
+                .rawApiKey(apiKey) // <-- Dynamically maps the key string or null
+                .build();
+    }
+}
+
+```
+
+---
+
+### 🔍 How it plays out in the Service Layer
+
+#### Context 1: Creating a Fresh Subscription (Requires API Key)
+
+When subscribing, we generate a fresh API key token pair and pass it explicitly into the two-argument version of the mapper:
+
+```java
+ApiKeyCreateResponse apiKeyResponse = apiKeyService.generateApiKey(user.getId());
+
+// Invokes Version B (Two-Argument Mapper)
+return SubscriptionMapper.toDTO(saved, apiKeyResponse.getRawApiKey());
+
+```
+
+#### Context 2: Canceling or Fetching History (No API Key)
+
+When canceling or viewing past records, no API key generation happens. We safely call the original single-argument mapper, which defaults the token value to `null` cleanly behind the scenes:
+
+```java
+// Invokes Version A (Single-Argument Mapper)
+return SubscriptionMapper.toDTO(saved); 
+
+```
 
 
 
-.
+---
+
+# 📝 Microservices Notes: OpenFeign vs. Inbound Controller Routing
+
+### 💡 Core Takeaway
+
+Declaring an `@FeignClient` interface inside a microservice **only creates an internal Java client for outbound communication**. It **does not** automatically generate or expose an inbound HTTP endpoint for external clients like Postman or a frontend application on that service's port.
+
+---
+
+### 1. The Anatomy of an OpenFeign Client
+
+```java
+@FeignClient(name = "usage-service", url = "http://localhost:8081")
+public interface UsageClient {
+    @GetMapping("/api/usage/{userId}")
+    UsageSummaryResponse getUsageSummary(@PathVariable("userId") Long userId);
+}
+
+```
+
+* **What it actually does:** It acts as a **bridge code engine**. Whenever your internal business logic calls `usageClient.getUsageSummary(1L)`, OpenFeign translates that method call into an actual HTTP `GET` network call targeting `http://localhost:8081/api/usage/1` behind the scenes.
+* **What it does NOT do:** It does **not** make `billify-core-service` (port `8187`) listen for inbound requests on `/api/usage/{userId}`.
+
+---
+
+### 2. Deconstructing the 404/401 Cascading Error Flow
+
+When you sent a request to `GET http://localhost:8187/api/usage/1`, a chain reaction occurred:
+
+1. **Missing Controller Mapping (404 Error):** The request arrived at port `8187` (`billify-core-service`). Because no `@RestController` was mapped to listen to `/api/usage/` locally on that port, Spring MVC threw a `NoResourceFoundException` (404 Not Found).
+2. **Spring Boot Error Dispatching:** When a 404 occurs, Spring Boot automatically forwards the request internally to its built-in global error page route (`/error`).
+3. **Security Masking Interception (401 Error):** The internal redirect to `/error` passed back through the security filter chain. Since `/error` was not explicitly listed as a `.permitAll()` endpoint, the security filters evaluated it under `.anyRequest().authenticated()`. Because the original request context was broken during the 404 dispatch, your custom `AuthenticationEntryPoint` caught it and overrode the response to a **401 Unauthorized**.
+
+---
+
+### 3. The Two Correct Ways to Route Requests
+
+#### Strategy A: Direct Microservice Ingestion (Standard Testing)
+
+If you want to read metrics data directly during backend manual testing, you bypass the core service entirely and target the microservice holding the database resource directly:
+
+* **Target Endpoint:** `GET http://localhost:8081/api/usage/1`
+
+#### Strategy B: The Edge Proxy Gateway Pattern
+
+If your frontend or Postman clients are strictly forbidden from hitting individual microservice ports directly, you build an explicit proxy bridge endpoint inside your gateway service (or Core Service):
+
+```java
+@RestController
+@RequestMapping("/api/usage")
+@RequiredArgsConstructor
+public class CoreUsageProxyController {
+
+    private final UsageClient usageClient; // Injected internal OpenFeign proxy client
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<UsageSummaryResponse> proxyGetUsageSummary(@PathVariable Long userId) {
+        // Explicitly intercept the request on port 8187 and forward it internally via Feign to port 8081
+        return ResponseEntity.ok(usageClient.getUsageSummary(userId));
+    }
+}
+
+```
+
+*(Remembering to add `.requestMatchers("/api/usage/").permitAll()` or `.authenticated()` to your `SecurityConfig` mapping to avoid authorization drops).*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+# Adding Eureka to Saas Core:
+
+Where Billify Stands for the moment:
+Current architecture:
+
+```text
+                 React
+
+                   │
+
+                   ▼
+
+         Billify Core Service
+                  │
+                  │ OpenFeign
+                  ▼
+            Usage Service
+```
+
+Core Service knows exactly where Usage Service lives.
+
+Inside your configuration you probably have something similar to:
+
+```properties
+services.usage-service.url=http://localhost:8081
+```
+
+Although we externalized it in Milestone 1, it is still fundamentally a **fixed location**.
+
+---
+
+# The Problem
+
+Imagine six months from now.
+
+Billify is deployed on Kubernetes.
+
+You decide to scale Usage Service.
+
+Instead of:
+
+```text
+Usage Service
+
+localhost:8081
+```
+
+You now have:
+
+```text
+Usage Service Instance 1
+
+10.1.4.18:8081
+
+Usage Service Instance 2
+
+10.1.4.22:8081
+
+Usage Service Instance 3
+
+10.1.4.30:8081
+```
+
+Question:
+
+How does Core Service know which one to call?
+
+Hardcoding isn't possible anymore.
+
+If instance 1 crashes:
+
+```text
+Core
+
+↓
+
+10.1.4.18
+
+↓
+
+Connection Refused
+```
+
+Everything breaks.
+
+This is exactly the problem Eureka was invented to solve.
+
+---
+
+# Eureka's Responsibility
+
+Think of Eureka as a phone directory.
+
+Instead of:
+
+```text
+Core
+
+↓
+
+http://localhost:8081
+```
+
+Core asks:
+
+```text
+Where is
+
+billify-usage-service?
+```
+
+Eureka replies:
+
+```text
+Available Instances
+
+10.1.4.18
+
+10.1.4.22
+
+10.1.4.30
+```
+
+Then the client automatically selects one.
+
+Core no longer cares where Usage Service is running.
+
+It only knows its logical name.
+
+---
+
+# Billify After Milestone 2
+
+Instead of:
+
+```text
+             Core
+               │
+               │ localhost:8081
+               ▼
+            Usage
+```
+
+We'll have:
+
+```text
+                 Eureka Server
+
+                       ▲
+
+         Registers     │      Registers
+
+      Core ────────────┼──────────── Usage
+
+
+
+Core
+
+↓
+
+Feign
+
+↓
+
+billify-usage-service
+
+↓
+
+Eureka
+
+↓
+
+One Available Instance
+```
+
+Notice something important.
+
+Core never sees an IP address anymore.
+
+---
+
+# What We Should Learn
+
+This milestone is **not about Eureka APIs**.
+
+It's about understanding:
+
+* Service Discovery
+* Client-side Load Balancing
+* Dynamic Service Registration
+* Heartbeats
+* Registry
+* Failure Detection
+
+Those are the real concepts.
+
+---
+

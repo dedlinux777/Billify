@@ -1,6 +1,6 @@
 package com.saas.usage.controller;
 
-import com.saas.usage.dto.HealthResponse;
+import com.saas.usage.dto.response.HealthResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

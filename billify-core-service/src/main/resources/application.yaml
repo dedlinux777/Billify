@@ -1,6 +1,6 @@
 spring:
   application:
-    name: billify
+    name: billify-core-service
 
   datasource:
     url: ${SPRING_DATASOURCE_URL_CORE:jdbc:mysql://localhost:3306/core_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true}
@@ -30,3 +30,23 @@ server:
 frontend:
   url: ${FRONTEND_URL}
 
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p --- [%thread] %-40.40logger{39} [correlationId: %X{correlationId}] : %m%n"
+
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+  endpoint:
+    health:
+      show-details: always

@@ -1,0 +1,59 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:5173"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+      routes:
+        - id: core-auth-route
+          uri: lb://billify-core-service
+          predicates:
+            - Path=/api/auth/**
+
+        - id: core-plans-route
+          uri: lb://billify-core-service
+          predicates:
+            - Path=/api/plans/**
+          filters:
+            - JwtAuthenticationFilter
+
+        - id: core-subscriptions-route
+          uri: lb://billify-core-service
+          predicates:
+            - Path=/api/subscriptions/**
+          filters:
+            - JwtAuthenticationFilter
+
+        - id: core-payments-route
+          uri: lb://billify-core-service
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - JwtAuthenticationFilter
+
+        - id: execution-invoices-route
+          uri: lb://saas-execution-service
+          predicates:
+            - Path=/api/invoices/**
+
+        - id: core-apikeys-route
+          uri: lb://billify-core-service
+          predicates:
+            - Path=/api/apikeys/**, /api/api-keys/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
+
+jwt:
+  secret: ${JWT_SECRET:3ca56e8f18aef2ceb89fc42c2154bacf35d86e839a10e6a1988b1dbfcca21321}

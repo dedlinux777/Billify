@@ -1,6 +1,6 @@
 package com.saas.usage.repository;
 
-import com.saas.usage.model.UsageSummary;
+import com.saas.usage.entity.UsageSummary;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

@@ -1,6 +1,6 @@
 package com.saas.billing.config;
 
-import com.saas.billing.jwt.JwtAuthFilter;
+import com.saas.billing.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
@@ -34,13 +34,16 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(cors -> cors.disable())
                 .sessionManagement(s ->
                         s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/internal/**").permitAll()
                         .requestMatchers("/api/invoices", "/api/invoices/**").permitAll()
+                        .requestMatchers("/api/apikeys/**").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/plans").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/plans", "/api/plans/**").authenticated()
                         .requestMatchers("/api/subscriptions/**").authenticated()
@@ -48,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,   "/api/plans").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/plans/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET,    "/api/plans", "/api/plans/**").authenticated()
+                        .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter,
@@ -60,19 +64,6 @@ public class SecurityConfig {
                 });
 
         return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin(frontendUrl);
-        config.addAllowedMethod("*");
-        config.addAllowedHeader("*");
-        config.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", config);
-        return source;
     }
 
     @Bean
